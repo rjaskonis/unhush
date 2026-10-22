@@ -70,8 +70,8 @@ export async function transcribeAudioBlob(
   else if (audioBlob.type.includes("webm")) extension = "webm";
 
   formData.append("file", audioBlob, `recording.${extension}`);
-  formData.append("response_format", "text");
   formData.append("model", config.model);
+  formData.append("language", localStorage.getItem("unhush_language") || "pt");
 
   const headers: Record<string, string> = {};
   if (config.apiKey) {
@@ -105,6 +105,12 @@ export async function transcribeAudioBlob(
     }
   }
 
-  const text = await response.text();
+  const payload: unknown = await response.json();
+  const text = payload && typeof payload === "object" && "text" in payload
+    ? (payload as { text: unknown }).text
+    : undefined;
+  if (typeof text !== "string" || !text.trim()) {
+    throw new Error("The transcription API response did not contain text.");
+  }
   return text.trim();
 }
